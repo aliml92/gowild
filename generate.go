@@ -79,7 +79,7 @@ func generate(key string, start bool, end bool, b *strings.Builder, schema *json
 
 func genStringValue(key string, b *strings.Builder, schema *jsonschema.Schema) {
 	if schema.Format != "" {
-		q := strconv.Quote(Formats[schema.Format]())
+		q := strconv.Quote(Formats[schema.Format](schema.MinLength, schema.MaxLength))
 		b.WriteString(q)
 		return  
 	}

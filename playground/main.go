@@ -11,7 +11,7 @@ import (
 
 
 func main(){
-	jsonStr, err := gowild.Generate("Authorize.json")
+	jsonStr, err := gowild.Generate("AuthorizeResponse.json")
 	if err != nil {
 		log.Printf("err: %v", err)
 	}

@@ -27,37 +27,51 @@ func Generate(url string) (string, error) {
 		return "", err
 	}
 	var b strings.Builder
-	generate("", &b, schema)
-	return b.String(), nil
+	generate("", true, true, &b, schema)
+	res := b.String()
+	return res[1:b.Len()-1], nil
 }
 
 
 
-func generate(key string, b *strings.Builder, schema *jsonschema.Schema) {
-	b.WriteString("{")
+func generate(key string, start bool, end bool, b *strings.Builder, schema *jsonschema.Schema) {
+	if start { b.WriteString("{") }
 	if key != "" {
 		b.WriteString(strconv.Quote(key))
 		b.WriteString(":")
-	}
-	for k, s := range schema.Properties {
-		generate(k, b, s)
 	}
 	jsonType := schema.Types[0]
 	switch jsonType {
 		case jsonString:
 			genStringValue(key, b, schema)
 		case jsonInteger:
-			genIntegerValue(key, b, schema)
-		case jsonNumber:
 			genNumberValue(key, b, schema)
-		case jsonArray:
+		case jsonNumber:
+			genIntegerValue(key, b, schema)
+		case jsonObject:
+			l := len(schema.Properties)
+			if l > 0 {
+				var i int 
+				for k, s := range schema.Properties {
+					var start, end bool
+					if i == 0{
+						start = true
+					}
+					if i == l-1 {
+						end = true
+					}
+					generate(k, start, end,  b, s)
+					i++
+				}
+			}	
+		case jsonArray:	
 			genArrayValue(key, b, schema)
 		case jsonBoolean:
 			genBooleanValue(key, b, schema)
 		case jsonNull:
-			b.WriteString("")		
+			b.WriteString("")			
 	}
-	b.WriteString("}")
+	if end { b.WriteString("}") } else { b.WriteString(",") }
 }
 
 

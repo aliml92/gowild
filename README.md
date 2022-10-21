@@ -1,3 +1,3 @@
-## generate fake json data from json schemas
+## GOWILD
 
-it can be particulary used for creating table test data in go
+PROJECT UNDER HEAVY DEVELOPMENT

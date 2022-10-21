@@ -1,12 +1,9 @@
 package main
 
 import (
-	"fmt"
-	"os"
-	"strings"
+	"log"
 
-	"github.com/sanity-io/litter"
-	"github.com/santhosh-tekuri/jsonschema/v5"
+	"github.com/aliml92/gowild"
 )
 
 
@@ -14,21 +11,9 @@ import (
 
 
 func main(){
-	compiler := jsonschema.NewCompiler()
-	compiler.Draft = jsonschema.Draft6
-	schema, err := compiler.Compile("./201/AuthorizeResponse.json")
+	jsonStr, err := gowild.Generate("Authorize.json")
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%#v\n", err)
-		os.Exit(1)
+		log.Printf("err: %v", err)
 	}
-	litter.Dump(schema)
-
-	var jsonStr strings.Builder
-	var dfs func(root *jsonschema.Schema)
-	dfs = func(root *jsonschema.Schema) {
-		if root == nil {
-			return
-		}
-		
-	} 
+	log.Printf("json string: %v", jsonStr)
 }

@@ -1,4 +1,4 @@
-module github.com/aliml92/gocrazy
+module github.com/aliml92/gowild
 
 go 1.19
 

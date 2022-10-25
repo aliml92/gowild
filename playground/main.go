@@ -11,9 +11,10 @@ import (
 
 
 func main(){
-	jsonStr, err := gowild.Generate("AuthorizeResponse.json")
+	gen, err := gowild.NewGenerator("StopTransaction.json", "4")
 	if err != nil {
 		log.Printf("err: %v", err)
 	}
-	log.Printf("json string: %v", jsonStr)
+	log.Printf("json string: %v", gen.GenerateOne())
+
 }

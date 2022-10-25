@@ -1,9 +1,11 @@
 package gowild
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
+	"github.com/brianvoe/gofakeit/v6"
 	"github.com/santhosh-tekuri/jsonschema/v5"
 )
 
@@ -19,22 +21,54 @@ const (
 )
 
 
-func Generate(url string) (string, error) {
+
+var drafts = map[string]Draft{
+	"4": 		jsonschema.Draft4,
+	"6": 		jsonschema.Draft6,
+	"7": 		jsonschema.Draft7,
+	"2019": 	jsonschema.Draft2019,
+	"2020": 	jsonschema.Draft2020,
+	"latest":	jsonschema.Draft2020,
+}
+
+type Schema *jsonschema.Schema
+type Draft *jsonschema.Draft
+
+type Generator struct {
+	schema Schema
+	draft  Draft
+}
+
+func NewGenerator(url, draft string) (*Generator, error) {
+	g := &Generator{}
+	if v, ok := drafts[draft]; ok {
+		g.draft = v
+	} else {
+		g.draft = drafts["latest"]
+	}
 	compiler := jsonschema.NewCompiler()
 	compiler.Draft = jsonschema.Draft4
 	schema, err := compiler.Compile(url)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
+	g.schema = schema
+	return g, nil
+}  
+
+
+
+
+func (g *Generator) GenerateOne() string {
 	var b strings.Builder
-	generate("", true, true, &b, schema)
+	generate("", true, true, &b, g.schema)
 	res := b.String()
-	return res[1:b.Len()-1], nil
-}
+	return res
+}  
 
 
 
-func generate(key string, start bool, end bool, b *strings.Builder, schema *jsonschema.Schema) {
+func generate(key string, start bool, end bool, b *strings.Builder, schema Schema) {
 	if start { b.WriteString("{") }
 	if key != "" {
 		b.WriteString(strconv.Quote(key))
@@ -44,9 +78,9 @@ func generate(key string, start bool, end bool, b *strings.Builder, schema *json
 	switch jsonType {
 		case jsonString:
 			genStringValue(key, b, schema)
-		case jsonInteger:
-			genNumberValue(key, b, schema)
 		case jsonNumber:
+			genNumberValue(key, b, schema)
+		case jsonInteger:
 			genIntegerValue(key, b, schema)
 		case jsonObject:
 			l := len(schema.Properties)
@@ -64,7 +98,8 @@ func generate(key string, start bool, end bool, b *strings.Builder, schema *json
 					i++
 				}
 			}	
-		case jsonArray:	
+		case jsonArray:
+			fmt.Println("array is on") 	
 			genArrayValue(key, b, schema)
 		case jsonBoolean:
 			genBooleanValue(key, b, schema)
@@ -77,40 +112,86 @@ func generate(key string, start bool, end bool, b *strings.Builder, schema *json
 
 
 
-func genStringValue(key string, b *strings.Builder, schema *jsonschema.Schema) {
+func genStringValue(key string, b *strings.Builder, schema Schema) {
+	var s string
 	if schema.Format != "" {
 		q := strconv.Quote(Formats[schema.Format](schema.MinLength, schema.MaxLength))
 		b.WriteString(q)
 		return  
 	}
-	q := strconv.Quote("fakestring")
-	b.WriteString(q)
-	// 1. check pattern 
-    // 2. check content encoding
+	// TODOS
+	// 1. check pattern
+	// 2. check content encoding
 	// 3. check content media type 
-	// 4. special function to create string, check if gofakeit has an option for key
-	// b.WriteString(func(key, s.MinLength, s.MaxLength)
+	for _, enum := range schema.Enum {
+		switch v := enum.(type) {
+		case string:
+			s = strconv.Quote(v)
+			b.WriteString(s)
+		case int:
+			s = strconv.Quote(string(rune(v)))
+			b.WriteString(s)
+		}
+		return
+	}  
+	if schema.MaxLength != -1 {
+		s = gofakeit.Word()
+		if len(s) > schema.MaxLength {
+			s = s[:schema.MaxLength]
+		}
+	} else if schema.MinLength != -1 {
+		s = gofakeit.Word()
+		for len(s) < schema.MinLength {
+			s += s
+		}
+	} else {
+		s = gofakeit.Word()
+	}
+	s = strconv.Quote(s)
+	b.WriteString(s)
 }
 
 
-func genIntegerValue(key string, b *strings.Builder, schema *jsonschema.Schema) {
-	b.WriteString("1")
+func genIntegerValue(key string, b *strings.Builder, schema Schema) {
+	i := gofakeit.Uint16()
+	b.WriteString(strconv.FormatUint(uint64(i), 10))
 	// create integer value
 }
 
-func genNumberValue(key string, b *strings.Builder, schema *jsonschema.Schema) {
-	b.WriteString("1.54")
+func genNumberValue(key string, b *strings.Builder, schema Schema) {
+	i := float32(gofakeit.Int8())
+	if schema.MultipleOf != nil {
+		f, _ := schema.MultipleOf.Float32()
+		i = f * i
+	}
+	b.WriteString(fmt.Sprintf("%f", i)) 
 	// create number value
 }
 
-func genArrayValue(key string, b *strings.Builder, schema *jsonschema.Schema) {
-	b.WriteString("[\"sampletext1\", \"sampletext2\"]")
-	// create arrat value
+// TODO
+func genArrayValue(key string, b *strings.Builder, schema Schema) {
+	switch v := schema.Items.(type) {
+	case *jsonschema.Schema:
+		b.WriteString("[")
+		fmt.Printf("items type1: %v\n", v) 
+		generate("", false, false, b, v)
+		b.WriteString("]")
+	case []*jsonschema.Schema:
+		fmt.Printf("items type2: %v\n", v) 
+		b.WriteString("[")
+		generate("", false, false, b, v[0])
+		b.WriteString("]")
+	default:
+		fmt.Printf("items type3: %v\n", v) 	
+	} 
 }
 
 
-func genBooleanValue(key string, b *strings.Builder, schema *jsonschema.Schema) {
-	b.WriteString("true")
-	// create boolean value
+func genBooleanValue(key string, b *strings.Builder, schema Schema) {
+	if gofakeit.Bool() {
+		b.WriteString("true")
+	} else {
+		b.WriteString("false")
+	}
 }
 

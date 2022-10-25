@@ -8,7 +8,7 @@ import (
 
 
 const (
-	DefaultDateTimeFormat = "2006-01-02T15:04:05.000Z" 
+	DeafultISO8601 = "2006-01-02T15:04:05.000Z" 
 )
 
 
@@ -42,13 +42,13 @@ var Formats = map[string]func(int, int) string {
 // TODO
 // return current date-time
 func genDateTime(min, max int) string {
-	return gofakeit.Date().Format(DefaultDateTimeFormat)
+	return gofakeit.Date().Format(DeafultISO8601)
 }
 
 
 // TODO
 func genDate(min, max int) string {
-	return gofakeit.Date().Format(DefaultDateTimeFormat)
+	return gofakeit.Date().Format(DeafultISO8601)
 }
 
 func genTime(min, max int) string {
